@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kecerdasan Buatan — Sistem yang Hidup dari Data</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #06080D;
+    --panel: #0D1119;
+    --panel-2: #121826;
+    --border: rgba(255,255,255,0.09);
+    --border-soft: rgba(255,255,255,0.06);
+    --text: #E8ECF3;
+    --text-dim: #8996AB;
+    --cyan: #4FD1C5;
+    --cyan-soft: rgba(79,209,197,0.5);
+    --amber: #FF8A5B;
+    --amber-soft: rgba(255,138,91,0.5);
+  }
+
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  html{ scroll-behavior:smooth; }
+
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  .mono{ font-family: 'JetBrains Mono', monospace; }
+  a{ color: inherit; }
+
+  /* ---------- living particle-network background ---------- */
+  #netbg{
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    opacity: 0.55;
+  }
+  .bg-glow{
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(680px 480px at 12% 8%, rgba(79,209,197,0.10), transparent 60%),
+      radial-gradient(560px 420px at 88% 30%, rgba(255,138,91,0.07), transparent 60%);
+    pointer-events: none;
+  }
+
+  .wrap{
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 0 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ---------- top strip ---------- */
+  .topstrip{
+    border-bottom: 1px solid var(--border);
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    background: rgba(6,8,13,0.72);
+    backdrop-filter: blur(10px);
+    z-index: 5;
+  }
+  .topstrip .wrap{ display:flex; justify-content: space-between; align-items: center; }
+  .topstrip .mark{ font-family:'JetBrains Mono', monospace; font-size: 12.5px; letter-spacing: 0.04em; color: var(--text-dim); display:flex; align-items:center; gap:8px; }
+  .topstrip .mark .pulse{
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px 1px var(--cyan-soft);
+    animation: livePulse 1.8s ease-in-out infinite;
+  }
+  @keyframes livePulse{ 0%,100%{ opacity: 1; transform: scale(1);} 50%{ opacity: 0.4; transform: scale(0.7);} }
+  .topstrip .coord{ font-family:'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-dim); }
+
+  /* ---------- hero ---------- */
+  .hero{ padding: 100px 0 76px; position: relative; }
+  .hero .eyebrow{
+    font-family:'JetBrains Mono', monospace; font-size: 12.5px; color: var(--cyan);
+    margin-bottom: 24px; display:flex; align-items:center; gap: 10px;
+    opacity: 0; animation: rise 0.7s ease forwards;
+  }
+  .hero .eyebrow .line{ width: 0; height: 1px; background: var(--cyan); animation: growLine 0.9s ease 0.15s forwards; }
+  h1{
+    font-family:'Space Grotesk', sans-serif; font-weight: 700;
+    font-size: clamp(2.3rem, 5.4vw, 3.8rem); line-height: 1.08; letter-spacing: -0.01em;
+    max-width: 13ch; color: var(--text);
+    opacity: 0; animation: rise 0.8s ease 0.12s forwards;
+  }
+  .hero .sub{ margin-top: 26px; max-width: 56ch; font-size: 1.14rem; color: var(--text-dim); line-height: 1.65; opacity: 0; animation: rise 0.8s ease 0.3s forwards; }
+  .hero .sub-note{
+    margin-top: 34px; font-family:'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim);
+    max-width: 44ch; border-left: 1.5px solid var(--amber); padding-left: 14px;
+    opacity: 0; animation: rise 0.8s ease 0.46s forwards;
+  }
+  @keyframes rise{ from{ opacity:0; transform: translateY(10px);} to{ opacity:1; transform: translateY(0);} }
+  @keyframes growLine{ to{ width: 40px; } }
+
+  /* ---------- section rail (active section indicator) ---------- */
+  .rail{
+    position: fixed;
+    left: 22px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  @media (max-width: 1080px){ .rail{ display:none; } }
+  .rail a{
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border);
+    display: block;
+    transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .rail a.active{
+    background: var(--cyan);
+    box-shadow: 0 0 10px 2px var(--cyan-soft);
+    transform: scale(1.3);
+  }
+
+  /* ---------- generic section ---------- */
+  section{ padding: 68px 0; border-top: 1px solid var(--border); position: relative; }
+  .callout{
+    position: absolute; left: -52px; top: 68px;
+    font-family:'JetBrains Mono', monospace; font-size: 12px; color: var(--text-dim); writing-mode: vertical-rl;
+  }
+  @media (max-width: 780px){ .callout{ display:none; } }
+
+  h2{ font-family:'Space Grotesk', sans-serif; font-weight: 700; font-size: clamp(1.6rem, 3.2vw, 2.2rem); color: var(--text); max-width: 20ch; margin-bottom: 18px; }
+  .lede{ max-width: 62ch; font-size: 1.05rem; color: var(--text-dim); line-height: 1.65; margin-bottom: 40px; }
+
+  /* ---------- diagram section ---------- */
+  .diagram-frame{
+    border: 1px solid var(--border);
+    background: var(--panel);
+    padding: 30px 20px 22px;
+    position: relative;
+    border-radius: 4px;
+    box-shadow: 0 0 40px rgba(79,209,197,0.05) inset;
+  }
+  .diagram-frame .tag{
+    position:absolute; top: -11px; left: 20px; background: var(--bg); padding: 0 10px;
+    font-family:'JetBrains Mono', monospace; font-size: 11px; color: var(--cyan); letter-spacing: 0.04em;
+    display: flex; align-items: center; gap: 7px;
+  }
+  .diagram-frame .tag .pulse{ width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 6px 1px var(--cyan-soft); animation: livePulse 1.8s ease-in-out infinite; }
+  svg text{ font-family:'JetBrains Mono', monospace; }
+
+  .cable{ stroke: rgba(255,255,255,0.22); stroke-width: 1.6; stroke-linecap: round; fill: none; }
+  .cable-return{ stroke: rgba(255,138,91,0.45); stroke-width: 1.4; stroke-dasharray: 2 5; fill: none; }
+  .packet{ filter: drop-shadow(0 0 5px rgba(79,209,197,1)); }
+  .packet-return{ filter: drop-shadow(0 0 5px rgba(255,138,91,1)); }
+
+  .node-box{ animation: nodeGlow 4.8s ease-in-out infinite; transform-origin: center; }
+  .node-1{ animation-delay: 0s; } .node-2{ animation-delay: 0.55s; } .node-3{ animation-delay: 1.1s; }
+  .node-4{ animation-delay: 1.65s; } .node-5{ animation-delay: 2.2s; }
+  @keyframes nodeGlow{
+    0%, 84%, 100%{ filter: drop-shadow(0 0 0 rgba(79,209,197,0)); }
+    8%{ filter: drop-shadow(0 0 9px rgba(79,209,197,0.85)); }
+    18%{ filter: drop-shadow(0 0 0 rgba(79,209,197,0)); }
+  }
+
+  .neuron{ animation: neuronBlink 2.2s ease-in-out infinite; }
+  .neuron:nth-child(6){ animation-delay: 0.3s; } .neuron:nth-child(7){ animation-delay: 0.7s; }
+  .neuron:nth-child(8){ animation-delay: 1.1s; } .neuron:nth-child(9){ animation-delay: 0.5s; } .neuron:nth-child(10){ animation-delay: 1.4s; }
+  @keyframes neuronBlink{ 0%,100%{ opacity: 0.2; } 50%{ opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce){
+    .packet, .packet-return{ display:none; }
+    .node-box{ animation:none; } .neuron{ animation:none; opacity:0.6; }
+    .hero .eyebrow, .hero h1, .hero .sub, .hero .sub-note{ opacity:1; animation:none; }
+    .hero .eyebrow .line{ width:40px; animation:none; }
+    #netbg{ display:none; }
+  }
+
+  .diagram-legend{ display:flex; flex-wrap: wrap; gap: 22px; margin-top: 24px; font-family:'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-dim); }
+  .diagram-legend span{ display:flex; align-items:center; gap: 7px; }
+  .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  /* ---------- numbered steps ---------- */
+  .steps{ margin-top: 36px; display: grid; gap: 0; }
+  .step{ display: grid; grid-template-columns: 52px 1fr; gap: 18px; padding: 20px 0; border-top: 1px solid var(--border-soft); transition: background 0.2s ease; }
+  .step:first-child{ border-top: none; }
+  .step:hover{ background: rgba(79,209,197,0.03); }
+  .step .num{ font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--cyan); padding-top: 3px; }
+  .step h3{ font-family:'Space Grotesk', sans-serif; font-weight: 600; font-size: 1.08rem; margin-bottom: 6px; color: var(--text); }
+  .step p{ color: var(--text-dim); font-size: 0.98rem; max-width: 58ch; line-height: 1.6; }
+
+  /* ---------- feature grid ---------- */
+  .feature-grid{ display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--border); border: 1px solid var(--border); margin-top: 8px; }
+  @media (max-width: 640px){ .feature-grid{ grid-template-columns: 1fr; } }
+  .feature-grid .cell{ background: var(--panel); padding: 26px 24px; transition: background 0.2s ease; }
+  .feature-grid .cell:hover{ background: var(--panel-2); }
+  .feature-grid h3{ font-family:'Space Grotesk', sans-serif; font-weight: 600; font-size: 1.05rem; margin-bottom: 8px; color: var(--text); }
+  .feature-grid p{ color: var(--text-dim); font-size: 0.95rem; line-height: 1.55; }
+
+  /* ---------- everyday life cards ---------- */
+  .life-grid{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 8px; }
+  @media (max-width: 780px){ .life-grid{ grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px){ .life-grid{ grid-template-columns: 1fr; } }
+  .life-card{
+    border: 1px solid var(--border); padding: 22px 18px; background: var(--panel); border-radius: 4px;
+    transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .life-card:hover{ border-color: var(--cyan-soft); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(79,209,197,0.08); }
+  .life-card .icon{ width: 28px; height: 28px; margin-bottom: 14px; color: var(--cyan); }
+  .life-card h3{ font-family:'Space Grotesk', sans-serif; font-weight: 600; font-size: 1rem; margin-bottom: 6px; color: var(--text); }
+  .life-card p{ font-size: 0.9rem; color: var(--text-dim); line-height: 1.5; }
+
+  /* ---------- best list ---------- */
+  .best-list{ margin-top: 8px; border-top: 1px solid var(--border-soft); }
+  .best-item{ display:grid; grid-template-columns: 1fr 2fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--border-soft); align-items: start; transition: background 0.2s ease; }
+  .best-item:hover{ background: rgba(79,209,197,0.03); }
+  @media (max-width: 640px){ .best-item{ grid-template-columns: 1fr; gap: 6px; } }
+  .best-item .name{ font-family:'JetBrains Mono', monospace; font-size: 13px; color: var(--amber); padding-top: 2px; }
+  .best-item p{ color: var(--text-dim); font-size: 0.98rem; line-height: 1.6; max-width: 58ch; }
+
+  /* ---------- footer ---------- */
+  footer{ border-top: 1px solid var(--border); padding: 44px 0 60px; }
+  footer .wrap{ display:flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 20px; }
+  footer .signoff{ font-family:'Space Grotesk', sans-serif; font-weight: 600; font-size: 1.05rem; color: var(--text); }
+  footer .meta{ font-family:'JetBrains Mono', monospace; font-size: 11.5px; color: var(--text-dim); text-align: right; }
+</style>
+</head>
+<body>
+
+  <canvas id="netbg"></canvas>
+  <div class="bg-glow"></div>
+
+  <nav class="rail" aria-hidden="true">
+    <a href="#apa-itu" data-label="Definisi"></a>
+    <a href="#proses" data-label="Alur Data"></a>
+    <a href="#fungsi" data-label="Fungsi"></a>
+    <a href="#kelebihan" data-label="Kelebihan"></a>
+    <a href="#sehari-hari" data-label="Penerapan"></a>
+    <a href="#fitur-terbaik" data-label="Fitur"></a>
+  </nav>
+
+  <div class="topstrip">
+    <div class="wrap">
+      <div class="mark"><span class="pulse"></span>GBR·AI/01 — SISTEM AKTIF</div>
+      <div class="coord">SISTEM KECERDASAN BUATAN</div>
+    </div>
+  </div>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow"><span class="line"></span>SEBUAH CATATAN TEKNIS</div>
+      <h1>Cara Kerja Kecerdasan Buatan, Dijelaskan Selapis demi Selapis</h1>
+      <p class="sub">Sistem AI kini ada di balik hampir semua layar yang kita sentuh — dari rekomendasi tontonan sampai deteksi penyakit. Halaman ini membedah apa itu AI, bagaimana ia memproses data, dan di mana saja ia sudah bekerja diam-diam di keseharian kita.</p>
+      <p class="sub-note">Disusun sebagai bagian dari portofolio Ahmad Zubair, membahas prinsip kerja sistem AI dari sisi fungsi, kelebihan, dan penerapannya.</p>
+    </div>
+  </header>
+
+  <section id="apa-itu">
+    <div class="wrap">
+      <span class="callout">§ DEFINISI</span>
+      <h2>Apa itu sistem AI?</h2>
+      <p class="lede">Kecerdasan buatan adalah program yang dirancang untuk meniru sebagian cara manusia berpikir: mengenali pola, memperkirakan kemungkinan, dan mengambil keputusan dari data. Bedanya dengan program biasa, AI tidak dijalankan dari instruksi tetap — ia "belajar" dari contoh data, lalu menyesuaikan responsnya setiap kali data baru masuk.</p>
+      <div class="feature-grid">
+        <div class="cell">
+          <h3>Berbasis data, bukan aturan kaku</h3>
+          <p>Alih-alih diprogram baris demi baris untuk setiap kemungkinan, model AI menyimpulkan pola dari ribuan hingga miliaran contoh data.</p>
+        </div>
+        <div class="cell">
+          <h3>Terus menyesuaikan diri</h3>
+          <p>Sebagian sistem AI diperbarui berkala dengan data baru, sehingga akurasinya bisa meningkat seiring waktu pemakaian.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="proses">
+    <div class="wrap">
+      <span class="callout">§ ALUR DATA</span>
+      <h2>Bagaimana AI memproses data</h2>
+      <p class="lede">Dari data mentah sampai jadi jawaban di layar, ada lima tahap yang dilalui hampir semua sistem AI. Diagram berikut menunjukkan alurnya secara langsung — data mengalir lewat "kabel", masuk ke inti model, lalu kembali lagi sebagai umpan balik.</p>
+
+      <div class="diagram-frame">
+        <span class="tag"><span class="pulse"></span>DIAGRAM 01 — ALUR PEMROSESAN DATA AI (LIVE)</span>
+        <svg viewBox="0 0 780 300" width="100%" style="overflow:visible">
+
+          <path id="cable1" class="cable" d="M150 150 L182 150"/>
+          <path id="cable2" class="cable" d="M304 150 L336 150"/>
+          <path id="cable3" class="cable" d="M468 150 L500 150"/>
+          <path id="cable4" class="cable" d="M622 150 L654 150"/>
+          <path id="cable5" class="cable-return" d="M706 187 C706 240, 403 240, 403 197"/>
+
+          <rect class="node-box node-1" x="30" y="115" width="120" height="70" rx="3" fill="#0D1119" stroke="rgba(255,255,255,0.2)" stroke-width="1.2"/>
+          <text x="90" y="145" text-anchor="middle" font-size="11" fill="#FF8A5B" font-weight="600">01</text>
+          <text x="90" y="163" text-anchor="middle" font-size="12" fill="#E8ECF3">Data Mentah</text>
+
+          <rect class="node-box node-2" x="184" y="115" width="120" height="70" rx="3" fill="#0D1119" stroke="rgba(255,255,255,0.2)" stroke-width="1.2"/>
+          <text x="244" y="145" text-anchor="middle" font-size="11" fill="#FF8A5B" font-weight="600">02</text>
+          <text x="244" y="163" text-anchor="middle" font-size="12" fill="#E8ECF3">Praproses</text>
+
+          <rect class="node-box node-3" x="338" y="105" width="130" height="90" rx="3" fill="#4FD1C5" opacity="0.09" stroke="#4FD1C5" stroke-width="1.4"/>
+          <text x="403" y="128" text-anchor="middle" font-size="11" fill="#FF8A5B" font-weight="600">03</text>
+          <text x="403" y="180" text-anchor="middle" font-size="11.5" fill="#E8ECF3">Model / Jaringan Saraf</text>
+          <circle class="neuron" cx="365" cy="145" r="2.6" fill="#4FD1C5"/>
+          <circle class="neuron" cx="385" cy="155" r="2.6" fill="#4FD1C5"/>
+          <circle class="neuron" cx="403" cy="140" r="2.6" fill="#4FD1C5"/>
+          <circle class="neuron" cx="421" cy="158" r="2.6" fill="#4FD1C5"/>
+          <circle class="neuron" cx="440" cy="145" r="2.6" fill="#4FD1C5"/>
+          <line x1="365" y1="145" x2="403" y2="140" stroke="#4FD1C5" stroke-width="0.7" opacity="0.4"/>
+          <line x1="403" y1="140" x2="385" y2="155" stroke="#4FD1C5" stroke-width="0.7" opacity="0.4"/>
+          <line x1="385" y1="155" x2="421" y2="158" stroke="#4FD1C5" stroke-width="0.7" opacity="0.4"/>
+          <line x1="421" y1="158" x2="440" y2="145" stroke="#4FD1C5" stroke-width="0.7" opacity="0.4"/>
+          <line x1="403" y1="140" x2="440" y2="145" stroke="#4FD1C5" stroke-width="0.7" opacity="0.4"/>
+
+          <rect class="node-box node-4" x="502" y="115" width="120" height="70" rx="3" fill="#0D1119" stroke="rgba(255,255,255,0.2)" stroke-width="1.2"/>
+          <text x="562" y="145" text-anchor="middle" font-size="11" fill="#FF8A5B" font-weight="600">04</text>
+          <text x="562" y="163" text-anchor="middle" font-size="12" fill="#E8ECF3">Prediksi / Output</text>
+
+          <rect class="node-box node-5" x="656" y="115" width="100" height="70" rx="3" fill="#0D1119" stroke="rgba(255,255,255,0.2)" stroke-width="1.2"/>
+          <text x="706" y="145" text-anchor="middle" font-size="11" fill="#FF8A5B" font-weight="600">05</text>
+          <text x="706" y="163" text-anchor="middle" font-size="12" fill="#E8ECF3">Umpan Balik</text>
+          <text x="555" y="252" text-anchor="middle" font-size="10.5" fill="#FF8A5B">melatih ulang model dengan data baru</text>
+
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="0s"><mpath href="#cable1"/></animateMotion></circle>
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="0.65s"><mpath href="#cable1"/></animateMotion></circle>
+
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="0.55s"><mpath href="#cable2"/></animateMotion></circle>
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="1.2s"><mpath href="#cable2"/></animateMotion></circle>
+
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="1.1s"><mpath href="#cable3"/></animateMotion></circle>
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="1.75s"><mpath href="#cable3"/></animateMotion></circle>
+
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="1.65s"><mpath href="#cable4"/></animateMotion></circle>
+          <circle r="4" class="packet" fill="#4FD1C5"><animateMotion dur="1.3s" repeatCount="indefinite" begin="2.3s"><mpath href="#cable4"/></animateMotion></circle>
+
+          <circle r="4" class="packet-return" fill="#FF8A5B"><animateMotion dur="2.4s" repeatCount="indefinite" begin="2.2s"><mpath href="#cable5"/></animateMotion></circle>
+        </svg>
+        <div class="diagram-legend">
+          <span><i class="dot" style="background:#8996AB"></i>alur data utama</span>
+          <span><i class="dot" style="background:#4FD1C5"></i>lapisan pemrosesan model</span>
+          <span><i class="dot" style="background:#FF8A5B"></i>siklus umpan balik / pelatihan ulang</span>
+        </div>
+      </div>
+
+      <div class="steps">
+        <div class="step"><div class="num mono">01</div><div><h3>Pengumpulan data</h3><p>Data mentah dikumpulkan dari berbagai sumber — teks, gambar, suara, atau data sensor — sebagai bahan baku yang akan dipelajari model.</p></div></div>
+        <div class="step"><div class="num mono">02</div><div><h3>Praproses</h3><p>Data dibersihkan dari duplikasi dan noise, lalu diubah ke format numerik (vektor atau embedding) yang bisa dibaca mesin.</p></div></div>
+        <div class="step"><div class="num mono">03</div><div><h3>Model / jaringan saraf</h3><p>Data numerik mengalir lewat lapisan-lapisan neuron buatan, masing-masing menghitung bobot untuk menemukan pola tersembunyi di dalamnya.</p></div></div>
+        <div class="step"><div class="num mono">04</div><div><h3>Prediksi / output</h3><p>Model menghasilkan keluaran: sebuah label, teks, gambar, angka, atau rekomendasi keputusan.</p></div></div>
+        <div class="step"><div class="num mono">05</div><div><h3>Umpan balik & pelatihan ulang</h3><p>Hasil dievaluasi terhadap kebenaran atau kepuasan pengguna, lalu digunakan untuk menyetel ulang model supaya makin akurat.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fungsi">
+    <div class="wrap">
+      <span class="callout">§ FUNGSI</span>
+      <h2>Fungsi &amp; kegunaan utama</h2>
+      <p class="lede">Di balik ragam produk AI yang berbeda-beda, hampir semuanya bertumpu pada lima kemampuan dasar berikut.</p>
+      <div class="feature-grid">
+        <div class="cell"><h3>Mengenali pola</h3><p>Mendeteksi wajah, suara, objek, atau anomali dari tumpukan data yang terlalu besar untuk diperiksa manusia satu per satu.</p></div>
+        <div class="cell"><h3>Memprediksi</h3><p>Memperkirakan kejadian mendatang — permintaan pasar, cuaca, atau perilaku pengguna — berdasarkan pola historis.</p></div>
+        <div class="cell"><h3>Mengotomasi tugas berulang</h3><p>Menjalankan pekerjaan repetitif seperti penyortiran email atau pemeriksaan kualitas produk tanpa campur tangan terus-menerus.</p></div>
+        <div class="cell"><h3>Memahami &amp; menghasilkan bahasa</h3><p>Membaca maksud dari kalimat manusia, lalu menjawab, meringkas, atau menerjemahkan dengan bahasa alami.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="kelebihan">
+    <div class="wrap">
+      <span class="callout">§ KELEBIHAN</span>
+      <h2>Kelebihan sistem AI</h2>
+      <p class="lede">Dibanding proses manual, AI unggul terutama dalam lima hal berikut.</p>
+      <div class="best-list">
+        <div class="best-item"><div class="name">kecepatan</div><p>Memproses jutaan baris data atau ribuan gambar dalam hitungan detik, jauh melampaui kemampuan manusia.</p></div>
+        <div class="best-item"><div class="name">konsistensi</div><p>Tidak lelah dan tidak terpengaruh suasana hati, sehingga hasil keputusannya cenderung stabil untuk kriteria yang sama.</p></div>
+        <div class="best-item"><div class="name">skalabilitas</div><p>Sistem yang sama bisa melayani satu pengguna atau satu juta pengguna sekaligus tanpa perlu menambah tenaga kerja secara linear.</p></div>
+        <div class="best-item"><div class="name">personalisasi</div><p>Bisa menyesuaikan respons untuk tiap individu berdasarkan riwayat dan preferensinya masing-masing.</p></div>
+        <div class="best-item"><div class="name">analisis skala besar</div><p>Menemukan korelasi tersembunyi dalam data besar (big data) yang mustahil ditelusuri secara manual.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="sehari-hari">
+    <div class="wrap">
+      <span class="callout">§ PENERAPAN</span>
+      <h2>AI dalam kehidupan sehari-hari</h2>
+      <p class="lede">Sering tidak terlihat, tapi AI sudah bekerja di banyak aktivitas harian berikut ini.</p>
+      <div class="life-grid">
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="15" cy="12" r="6"/><path d="M4 27c0-7 5-11 11-11s11 4 11 11"/></svg><h3>Asisten virtual</h3><p>Menjawab pertanyaan suara, mengatur alarm, atau membaca notifikasi lewat perintah bahasa alami.</p></div>
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="6" width="22" height="16"/><path d="M9 22v3h12v-3"/></svg><h3>Rekomendasi konten</h3><p>Menyusun urutan tontonan, lagu, atau produk yang paling sesuai dengan kebiasaan menonton dan belanja.</p></div>
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 4v22M4 15h22"/><circle cx="15" cy="15" r="11"/></svg><h3>Navigasi &amp; transportasi</h3><p>Menghitung rute tercepat dan memperkirakan waktu tempuh berdasarkan kondisi lalu lintas terkini.</p></div>
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 26s-11-6.5-11-14a6 6 0 0 1 11-3 6 6 0 0 1 11 3c0 7.5-11 14-11 14z"/></svg><h3>Kesehatan</h3><p>Membantu membaca citra medis untuk mendeteksi tanda-tanda penyakit lebih awal.</p></div>
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="9" width="22" height="14" rx="1"/><line x1="4" y1="14" x2="26" y2="14"/></svg><h3>Keuangan</h3><p>Mendeteksi transaksi mencurigakan dan menilai kelayakan kredit secara otomatis.</p></div>
+        <div class="life-card"><svg class="icon" viewBox="0 0 30 30" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="5" y="4" width="20" height="22" rx="2"/><circle cx="15" cy="21" r="1.2" fill="currentColor" stroke="none"/></svg><h3>Media sosial</h3><p>Menyaring konten yang melanggar aturan dan mengenali objek dalam foto secara otomatis.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="fitur-terbaik">
+    <div class="wrap">
+      <span class="callout">§ FITUR</span>
+      <h2>Fitur terbaik AI saat ini</h2>
+      <p class="lede">Beberapa kemampuan yang membedakan sistem AI generasi terbaru dari generasi sebelumnya.</p>
+      <div class="best-list">
+        <div class="best-item"><div class="name">multimodal</div><p>Mampu memahami dan menggabungkan teks, gambar, dan suara dalam satu permintaan yang sama.</p></div>
+        <div class="best-item"><div class="name">generative ai</div><p>Bisa membuat konten baru — tulisan, gambar, kode, atau audio — bukan sekadar mengklasifikasikan yang sudah ada.</p></div>
+        <div class="best-item"><div class="name">personalisasi real-time</div><p>Menyesuaikan tampilan dan rekomendasi seketika saat perilaku pengguna berubah, bukan hanya berdasarkan data lama.</p></div>
+        <div class="best-item"><div class="name">agen otonom</div><p>Dapat merangkai beberapa langkah tugas sendiri — mencari informasi, memakai alat, lalu menyimpulkan hasil akhir.</p></div>
+        <div class="best-item"><div class="name">pemahaman bahasa alami</div><p>Percakapan dengan sistem AI kini terasa jauh lebih wajar, memahami konteks dan maksud tersirat dalam kalimat.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="signoff">Disusun oleh Ahmad Zubair</div>
+      <div class="meta">CATATAN TEKNIS · SISTEM AI<br>PORTOFOLIO — 2026</div>
+    </div>
+  </footer>
+
+<script>
+  // living particle network — represents data drifting and connecting, like the subject itself
+  (function(){
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var canvas = document.getElementById('netbg');
+    if(!canvas || reduce){ return; }
+    var ctx = canvas.getContext('2d');
+    var w, h, particles;
+    var COUNT = 70;
+    var LINK_DIST = 140;
+
+    function resize(){
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    particles = Array.from({length: COUNT}, function(){
+      return {
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.28,
+        vy: (Math.random() - 0.5) * 0.28,
+        amber: Math.random() < 0.14
+      };
+    });
+
+    function step(){
+      ctx.clearRect(0, 0, w, h);
+      for(var i = 0; i < particles.length; i++){
+        var p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        if(p.x < 0 || p.x > w) p.vx *= -1;
+        if(p.y < 0 || p.y > h) p.vy *= -1;
+
+        for(var j = i + 1; j < particles.length; j++){
+          var q = particles[j];
+          var dx = p.x - q.x, dy = p.y - q.y;
+          var dist = Math.sqrt(dx*dx + dy*dy);
+          if(dist < LINK_DIST){
+            ctx.strokeStyle = 'rgba(79,209,197,' + (0.14 * (1 - dist / LINK_DIST)) + ')';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(q.x, q.y);
+            ctx.stroke();
+          }
+        }
+      }
+      for(var k = 0; k < particles.length; k++){
+        var pt = particles[k];
+        ctx.fillStyle = pt.amber ? 'rgba(255,138,91,0.75)' : 'rgba(79,209,197,0.75)';
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  })();
+
+  // section rail — lights up the dot matching the section in view
+  (function(){
+    var links = document.querySelectorAll('.rail a');
+    if(!links.length) return;
+    var sections = Array.prototype.map.call(links, function(a){
+      return document.querySelector(a.getAttribute('href'));
+    });
+    function onScroll(){
+      var pos = window.scrollY + window.innerHeight * 0.4;
+      var activeIdx = 0;
+      sections.forEach(function(sec, idx){
+        if(sec && sec.offsetTop <= pos) activeIdx = idx;
+      });
+      links.forEach(function(a, idx){
+        a.classList.toggle('active', idx === activeIdx);
+      });
+    }
+    document.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+
+</body>
+</html>
